@@ -7,7 +7,6 @@ function VersionHistoryPanel({
   requirementId,
   saving,
 }) {
-  const [ setExpandedVersion] = useState(null);
   const hasVersions = versions && versions.length > 0;
 
   return (
@@ -74,7 +73,6 @@ function VersionHistoryPanel({
                   <button
                     onClick={() => {
                       onRestore(requirementId, version);
-                      setExpandedVersion(null);
                     }}
                     disabled={saving}
                     className="!px-3 !py-2 text-xs font-semibold text-green-700 bg-green-100 hover:bg-green-200 border border-green-300 rounded transition-colors disabled:opacity-50"
