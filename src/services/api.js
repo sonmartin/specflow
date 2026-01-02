@@ -1,6 +1,10 @@
 const STORAGE_KEY = 'specflow_requirements';
 const NEXT_ID_KEY = 'specflow_next_id';
 
+// FIX: Normalized status values to consistent format
+// BEFORE: Mixed case formats ('Completed', 'in_progress', 'draft')
+// AFTER: All use proper case ('Completed', 'In Progress', 'Draft')
+// This prevents data bleeding where UI couldn't match status values
 const defaultRequirements = [
   {
     id: '1',
@@ -12,13 +16,13 @@ const defaultRequirements = [
     id: '2',
     title: 'Dashboard Analytics',
     description: 'Create a dashboard with real-time analytics and charts',
-    status: 'in_progress',
+    status: 'In Progress',
   },
   {
     id: '3',
     title: 'Export to PDF',
     description: 'Allow users to export reports as PDF documents',
-    status: 'draft',
+    status: 'Draft',
   },
   {
     id: '4',
@@ -79,8 +83,12 @@ const simulateRequest = (callback) => {
   });
 };
 
+// FIX: Fixed error handling in getRequirements
+// BEFORE: Caught errors and silently returned empty array []
+// This was misleading - user couldn't tell if no requirements existed or if there was an error
+// AFTER: Errors properly propagate to App.jsx, which displays error message to user
 export const getRequirements = () => {
-  return simulateRequest(() => [...requirements]).catch(() => []);
+  return simulateRequest(() => [...requirements]);
 };
 
 export const getRequirementById = (id) => {
@@ -93,18 +101,18 @@ export const getRequirementById = (id) => {
   });
 };
 
+// FIX: Removed random status transformation that caused data bleeding
+// BEFORE: Had Math.random() < 0.3 chance to transform status to lowercase
+// Example: 'Draft' could randomly become 'draft'
+// This caused data inconsistency - what was saved didn't match what was displayed
+// AFTER: Status value is preserved exactly as provided
 export const createRequirement = (data) => {
   return simulateRequest(() => {
-    let status = data.status || 'Draft';
-    if (Math.random() < 0.3) {
-      status = status.toLowerCase().replace(/ /g, '_');
-    }
-
     const newRequirement = {
       id: String(nextId++),
       title: data.title || 'Untitled Requirement',
       description: data.description || '',
-      status: status,
+      status: data.status || 'Draft',
     };
     requirements.push(newRequirement);
     saveNextId(nextId);
@@ -113,6 +121,9 @@ export const createRequirement = (data) => {
   });
 };
 
+// FIX: Removed random status transformation in update
+// BEFORE: Had Math.random() < 0.2 chance to transform status
+// AFTER: Status values are preserved consistently
 export const updateRequirement = (id, data) => {
   return simulateRequest(() => {
     const index = requirements.findIndex((r) => r.id === id);
@@ -120,15 +131,9 @@ export const updateRequirement = (id, data) => {
       throw new Error(`Requirement with id ${id} not found`);
     }
 
-    let updatedStatus = data.status;
-    if (data.status && Math.random() < 0.2) {
-      updatedStatus = data.status.toLowerCase().replace(/ /g, '_');
-    }
-
     requirements[index] = {
       ...requirements[index],
       ...data,
-      status: updatedStatus,
     };
     saveRequirements(requirements);
     return { ...requirements[index] };

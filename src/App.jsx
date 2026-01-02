@@ -1,13 +1,13 @@
-import { useState, useEffect } from 'react';
-import RequirementList from './components/RequirementList';
-import RequirementDetail from './components/RequirementDetail';
+import { useState, useEffect, use } from "react";
+import RequirementList from "./components/RequirementList";
+import RequirementDetail from "./components/RequirementDetail";
 import {
   getRequirements,
   createRequirement,
   updateRequirement,
   deleteRequirement,
   generateAcceptanceCriteria,
-} from './services/api';
+} from "./services/api";
 
 function App() {
   const [requirements, setRequirements] = useState([]);
@@ -17,6 +17,50 @@ function App() {
   const [saving, setSaving] = useState(false);
   const [generating, setGenerating] = useState(false);
   const [acceptanceCriteria, setAcceptanceCriteria] = useState(null);
+  const [versionHistory, setVersionHistory] = useState(() => {
+    const saved = localStorage.getItem("specflow_version_history");
+    return saved ? JSON.parse(saved) : {};
+  });
+
+  useEffect(() => {
+    localStorage.setItem(
+      "specflow_version_history",
+      JSON.stringify(versionHistory)
+    );
+  }, [versionHistory]);
+
+  const handleCommitVersion = (requirementId, title, description) => {
+    const newVersion = {
+      title,
+      description,
+      createdAt: new Date().toISOString(),
+    };
+    setVersionHistory((prev) => {
+      const versions = prev[requirementId] || [];
+      return {
+        ...prev,
+        [requirementId]: [...versions, newVersion],
+      };
+    });
+  };
+
+  const handleRestoreVersion = (requirementId, version) => {
+    setSaving(true);
+    try {
+      setRequirements((prev) => {
+        const updated = prev.map((req) =>
+          req.id === requirementId
+            ? { ...req, title: version.title, description: version.description }
+            : req
+        );
+        return updated;
+      });
+    } catch (error) {
+      setError(error.message);
+    } finally {
+      setSaving(false);
+    }
+  };
 
   const fetchRequirements = async () => {
     setLoading(true);
@@ -46,14 +90,13 @@ function App() {
     setSaving(true);
     try {
       const newReq = await createRequirement({
-        title: 'New Requirement',
-        description: '',
-        status: 'Draft',
+        title: "New Requirement",
+        description: "",
+        status: "Draft",
       });
       setRequirements((prev) => [...prev, newReq]);
       setSelectedRequirementId(newReq.id);
     } catch (err) {
-      console.error('Failed to create requirement:', err);
     } finally {
       setSaving(false);
     }
@@ -110,8 +153,14 @@ function App() {
   );
 
   return (
-    <div className="h-screen flex bg-gray-100" style={{ position: 'relative', zIndex: 1 }}>
-      <div className="w-1/2 h-full" style={{ position: 'relative', zIndex: 100 }}>
+    <div
+      className="h-screen flex bg-gray-100"
+      style={{ position: "relative", zIndex: 0 }}
+    >
+      <div
+        className="w-1/2 h-full"
+        style={{ position: "relative", zIndex: 10 }}
+      >
         <RequirementList
           requirements={requirements}
           selectedId={selectedRequirementId}
@@ -122,16 +171,21 @@ function App() {
           onRetry={fetchRequirements}
         />
       </div>
-      <RequirementDetail
-        requirement={selectedRequirement}
-        onUpdate={handleUpdate}
-        onDelete={handleDelete}
-        onGenerateAI={handleGenerateAI}
-        onClose={handleClose}
-        saving={saving}
-        generating={generating}
-        acceptanceCriteria={acceptanceCriteria}
-      />
+      <div className="relative z-20">
+        <RequirementDetail
+          requirement={selectedRequirement}
+          onUpdate={handleUpdate}
+          onDelete={handleDelete}
+          onGenerateAI={handleGenerateAI}
+          versionHistory={versionHistory[selectedRequirementId] || []}
+          onCommitVersion={handleCommitVersion}
+          onRestoreVersion={handleRestoreVersion}
+          onClose={handleClose}
+          saving={saving}
+          generating={generating}
+          acceptanceCriteria={acceptanceCriteria}
+        />
+      </div>
     </div>
   );
 }

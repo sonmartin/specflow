@@ -9,6 +9,15 @@ function RequirementListItem({ requirement, isSelected, onSelect }) {
           onSelect(requirement.id);
         }
       }}
+      // FIX: Added tabIndex and role for accessibility
+      // BEFORE: Div had onClick/onKeyDown but no tabIndex
+      // Users couldn't tab to this element with keyboard
+      // Screen readers didn't know it was interactive
+      // AFTER: tabIndex={0} allows keyboard navigation
+      //        role="button" tells screen readers this is a clickable element
+      // This makes the app usable for keyboard-only and screen reader users
+      tabIndex={0}
+      role="button"
       className={`p-4 border-b border-gray-200 cursor-pointer hover:bg-gray-50 transition-colors ${
         isSelected ? 'bg-blue-50 border-l-4 border-l-blue-500' : ''
       }`}
